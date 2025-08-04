@@ -1,67 +1,125 @@
-/* eslint-disable @next/next/no-img-element */
-'use client';
-import { useRouter } from 'next/navigation';
-import React, { useContext, useState } from 'react';
-import { Checkbox } from 'primereact/checkbox';
-import { Button } from 'primereact/button';
-import { Password } from 'primereact/password';
-import { LayoutContext } from '../../../../layout/context/layoutcontext';
-import { InputText } from 'primereact/inputtext';
-import { classNames } from 'primereact/utils';
+"use client";
+import type { Page } from "@/types";
+import { useRouter } from "next/navigation";
+import { Button } from "primereact/button";
+import { Checkbox } from "primereact/checkbox";
+import { InputText } from "primereact/inputtext";
+import { useContext, useState } from "react";
+import { LayoutContext } from "../../../../layout/context/layoutcontext";
 
-const LoginPage = () => {
-    const [password, setPassword] = useState('');
-    const [checked, setChecked] = useState(false);
-    const { layoutConfig } = useContext(LayoutContext);
-
+const Login: Page = () => {
+    const [usuario, setUsuario] = useState<string>("");
+    const [senha, setSenha] = useState<string>("");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [rememberMe, setRememberMe] = useState<boolean>(false);
     const router = useRouter();
-    const containerClassName = classNames('surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden', { 'p-input-filled': layoutConfig.inputStyle === 'filled' });
+    const { layoutConfig } = useContext(LayoutContext);
+    const dark = layoutConfig.colorScheme !== "light";
+
+    const login = async () => {
+        if (!usuario || !senha) {
+            alert("Preencha o email e a senha.");
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const res = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    usuario: usuario,
+                    senha: senha,
+                    dias: rememberMe
+                })
+            });
+
+            if (!res.ok) {
+                if (res.status === 401) {
+                    alert("Credenciais inválidas!");
+                } else {
+                    const err = await res.json();
+                    alert(err.error || "Erro no login");
+                }
+                return;
+            }
+
+            // Login bem-sucedido
+            const data = await res.json();
+            console.log("Login:", data);
+
+            // Redirecionar para home ou dashboard
+            router.push("/");
+        } catch (error) {
+            console.error("Erro de rede:", error);
+            alert("Erro ao tentar fazer login");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
-        <div className={containerClassName}>
-            <div className="flex flex-column align-items-center justify-content-center">
-                <img src={`/layout/images/logo-${layoutConfig.colorScheme === 'light' ? 'dark' : 'white'}.svg`} alt="Sakai logo" className="mb-5 w-6rem flex-shrink-0" />
-                <div
-                    style={{
-                        borderRadius: '56px',
-                        padding: '0.3rem',
-                        background: 'linear-gradient(180deg, var(--primary-color) 10%, rgba(33, 150, 243, 0) 30%)'
-                    }}
-                >
-                    <div className="w-full surface-card py-8 px-5 sm:px-8" style={{ borderRadius: '53px' }}>
-                        <div className="text-center mb-5">
-                            <img src="/demo/images/login/avatar.png" alt="Image" height="50" className="mb-3" />
-                            <div className="text-900 text-3xl font-medium mb-3">Welcome, Isabel!</div>
-                            <span className="text-600 font-medium">Sign in to continue</span>
-                        </div>
+        <div className="px-5 min-h-screen flex justify-content-center align-items-center flex flex-column">
+            <div className="border-1 my-8 border-primary surface-card border-round py-7 px-4 md:px-7 z-1">
+                <div className="mb-4">
+                    <div className="text-900 text-xl text-primary font-bold mb-2">
+                        Login
+                    </div>
+                    <span className="text-800 font-medium">
+                        Insira os dados de login abaixo:
+                    </span>
+                </div>
+                <div className="flex flex-column">
+                    <span className="p-input-icon-left w-full mb-4">
+                        <i className="pi pi-envelope"></i>
+                        <InputText
+                            id="email"
+                            type="text"
+                            className="w-full md:w-25rem"
+                            placeholder="Email"
+                            value={usuario}
+                            onChange={(e) => setUsuario(e.target.value)}
+                        />
+                    </span>
 
+                    <span className="p-input-icon-left w-full mb-4">
+                        <i className="pi pi-lock"></i>
+                        <InputText
+                            id="password"
+                            type="password"
+                            className="w-full md:w-25rem"
+                            placeholder="Senha"
+                            value={senha}
+                            onChange={(e) => setSenha(e.target.value)}
+                        />
+                    </span>
+
+                    <div className="mb-4 flex flex-wrap gap-3">
                         <div>
-                            <label htmlFor="email1" className="block text-900 text-xl font-medium mb-2">
-                                Email
+                            <Checkbox
+                                name="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.checked ?? false)}
+                                className="mr-2"
+                            ></Checkbox>
+                            <label htmlFor="checkbox" className="text-900 font-medium mr-8">
+                                Lembrar de mim
                             </label>
-                            <InputText id="email1" type="text" placeholder="Email address" className="w-full md:w-30rem mb-5" style={{ padding: '1rem' }} />
-
-                            <label htmlFor="password1" className="block text-900 font-medium text-xl mb-2">
-                                Password
-                            </label>
-                            <Password inputId="password1" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" toggleMask className="w-full mb-5" inputClassName="w-full p-3 md:w-30rem"></Password>
-
-                            <div className="flex align-items-center justify-content-between mb-5 gap-5">
-                                <div className="flex align-items-center">
-                                    <Checkbox inputId="rememberme1" checked={checked} onChange={(e) => setChecked(e.checked ?? false)} className="mr-2"></Checkbox>
-                                    <label htmlFor="rememberme1">Remember me</label>
-                                </div>
-                                <a className="font-medium no-underline ml-2 text-right cursor-pointer" style={{ color: 'var(--primary-color)' }}>
-                                    Forgot password?
-                                </a>
-                            </div>
-                            <Button label="Sign In" className="w-full p-3 text-xl" onClick={() => router.push('/')}></Button>
                         </div>
                     </div>
+
+                    <Button
+                        label="Log In"
+                        icon={`${isLoading && "pi pi-spin pi-spinner"}`}
+                        className="w-full bg-primary text-white border-none"
+                        onClick={login}
+                        disabled={isLoading}
+                    ></Button>
                 </div>
             </div>
         </div>
     );
 };
 
-export default LoginPage;
+export default Login;
